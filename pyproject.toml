@@ -1,6 +1,6 @@
 [project]
 name = "hollow-attractor"
-version = "0.2.4"
+version = "0.2.5"
 description = "Cross-session personal memory and task protocol for Claude"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -2,10 +2,13 @@
 """hollow — Hollow Attractor CLI
 
 Commands:
-  hollow init             Bootstrap ~/.hollow-attractor
-  hollow serve            Run MCP server over HTTP on localhost (default port 7412)
-  hollow serve --port N   Run on a custom port
-  hollow                  Run MCP server via stdio (used by Claude Desktop)
+  hollow init               Bootstrap ~/.hollow-attractor
+  hollow serve              Run MCP server over HTTP on localhost (default port 7412)
+  hollow serve --port N     Run on a custom port
+  hollow serve --daemon     Run in background, logs to /tmp/hollow-serve.log
+  hollow serve --stop       Stop a running daemon
+  hollow serve --status     Check if daemon is running
+  hollow                    Run MCP server via stdio (used by Claude Desktop)
 """
 
 from __future__ import annotations
@@ -35,11 +38,14 @@ def main() -> None:
         print("Hollow Attractor")
         print()
         print("Usage:")
-        print("  hollow init             Bootstrap ~/.hollow-attractor")
-        print("  hollow serve            Run MCP server over HTTP on localhost:7412")
-        print("  hollow serve --port N   Run HTTP server on a custom port")
-        print("  hollow --version        Show version")
-        print("  hollow                  Run MCP server via stdio (used by Claude Desktop)")
+        print("  hollow init               Bootstrap ~/.hollow-attractor")
+        print("  hollow serve              Run MCP server over HTTP on localhost:7412")
+        print("  hollow serve --port N     Run HTTP server on a custom port")
+        print("  hollow serve --daemon     Run HTTP server in background")
+        print("  hollow serve --stop       Stop the background server")
+        print("  hollow serve --status     Check if background server is running")
+        print("  hollow --version          Show version")
+        print("  hollow                    Run MCP server via stdio (used by Claude Desktop)")
         print()
         print("See https://github.com/wjdhollow/hollow-attractor for setup instructions.")
         if args:
@@ -47,8 +53,16 @@ def main() -> None:
             sys.exit(1)
 
 
+_PID_FILE = Path("/tmp/hollow-serve.pid")
+_LOG_FILE = Path("/tmp/hollow-serve.log")
+
+
 def _serve(args: list[str]) -> None:
     port = 7412
+    daemon = False
+    stop = False
+    status = False
+
     i = 0
     while i < len(args):
         if args[i] in ("--port", "-p") and i + 1 < len(args):
@@ -58,10 +72,32 @@ def _serve(args: list[str]) -> None:
                 print(f"Invalid port: {args[i + 1]}", file=sys.stderr)
                 sys.exit(1)
             i += 2
+        elif args[i] == "--daemon":
+            daemon = True
+            i += 1
+        elif args[i] == "--stop":
+            stop = True
+            i += 1
+        elif args[i] == "--status":
+            status = True
+            i += 1
         else:
             print(f"Unknown option: {args[i]}", file=sys.stderr)
             sys.exit(1)
 
+    if stop:
+        _serve_stop()
+        return
+
+    if status:
+        _serve_status()
+        return
+
+    if daemon:
+        _serve_daemon(port)
+        return
+
+    # Foreground mode
     from mcp_server.server import mcp
     mcp.settings.port = port
     mcp.settings.host = "127.0.0.1"
@@ -70,6 +106,82 @@ def _serve(args: list[str]) -> None:
     print(f'  "hollow-attractor": {{"type": "http", "url": "http://127.0.0.1:{port}/mcp"}}')
     print("Press Ctrl+C to stop.")
     mcp.run(transport="streamable-http")
+
+
+def _serve_daemon(port: int) -> None:
+    import os
+    import time
+
+    if _PID_FILE.exists():
+        pid = int(_PID_FILE.read_text().strip())
+        try:
+            os.kill(pid, 0)
+            print(f"Already running (PID {pid}). Use: hollow serve --stop")
+            sys.exit(1)
+        except OSError:
+            _PID_FILE.unlink()  # stale PID file
+
+    # Fork to background
+    pid = os.fork()
+    if pid > 0:
+        # Parent: wait briefly then confirm child started
+        time.sleep(1)
+        if _PID_FILE.exists() and int(_PID_FILE.read_text().strip()) == pid:
+            print(f"Hollow Attractor MCP server started (PID {pid})")
+            print(f"URL:  http://127.0.0.1:{port}/mcp")
+            print(f"Logs: {_LOG_FILE}")
+            print("Stop: hollow serve --stop")
+        else:
+            print(f"Server may have failed to start. Check {_LOG_FILE}", file=sys.stderr)
+        return
+
+    # Child: detach from terminal and run server
+    os.setsid()
+    with open(_LOG_FILE, "a") as log:
+        sys.stdout = log
+        sys.stderr = log
+        _PID_FILE.write_text(str(os.getpid()))
+        try:
+            from mcp_server.server import mcp
+            mcp.settings.port = port
+            mcp.settings.host = "127.0.0.1"
+            mcp.run(transport="streamable-http")
+        finally:
+            if _PID_FILE.exists():
+                _PID_FILE.unlink()
+
+
+def _serve_stop() -> None:
+    import os
+
+    if not _PID_FILE.exists():
+        print("No running daemon found.")
+        return
+
+    pid = int(_PID_FILE.read_text().strip())
+    try:
+        os.kill(pid, 15)  # SIGTERM
+        _PID_FILE.unlink()
+        print(f"Stopped (PID {pid}).")
+    except OSError:
+        print(f"Process {pid} not found — removing stale PID file.")
+        _PID_FILE.unlink()
+
+
+def _serve_status() -> None:
+    import os
+
+    if not _PID_FILE.exists():
+        print("hollow serve: not running")
+        return
+
+    pid = int(_PID_FILE.read_text().strip())
+    try:
+        os.kill(pid, 0)
+        print(f"hollow serve: running (PID {pid})")
+    except OSError:
+        print("hollow serve: not running (stale PID file)")
+        _PID_FILE.unlink()
 
 
 def _init() -> None:
