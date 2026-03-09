@@ -1,56 +1,56 @@
 #!/usr/bin/env bash
-# kurisu-init.sh
-# Bootstraps a new ~/.kurisu installation.
-# Safe to inspect before running. Creates no files outside ~/.kurisu.
+# hollow-init.sh
+# Bootstraps a new ~/.hollow-attractor installation.
+# Safe to inspect before running. Creates no files outside ~/.hollow-attractor.
 
 set -euo pipefail
 
 # ── Configuration ────────────────────────────────────────────────────────────
 
-KURISU_DIR="${KURISU_DIR:-$HOME/.kurisu}"
-KURISU_VERSION="0.1.0"
+HOLLOW_DIR="${HOLLOW_DIR:-$HOME/.hollow-attractor}"
+HOLLOW_VERSION="0.2.0"
 TODAY="$(date +%Y-%m-%d)"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-info()    { printf '\033[0;34m[kurisu]\033[0m %s\n' "$*"; }
-success() { printf '\033[0;32m[kurisu]\033[0m %s\n' "$*"; }
-warn()    { printf '\033[0;33m[kurisu]\033[0m %s\n' "$*" >&2; }
-die()     { printf '\033[0;31m[kurisu]\033[0m %s\n' "$*" >&2; exit 1; }
+info()    { printf '\033[0;34m[hollow]\033[0m %s\n' "$*"; }
+success() { printf '\033[0;32m[hollow]\033[0m %s\n' "$*"; }
+warn()    { printf '\033[0;33m[hollow]\033[0m %s\n' "$*" >&2; }
+die()     { printf '\033[0;31m[hollow]\033[0m %s\n' "$*" >&2; exit 1; }
 
 # ── Preflight ─────────────────────────────────────────────────────────────────
 
 command -v git >/dev/null 2>&1 || die "git is required but not found in PATH."
 
-if [[ -d "$KURISU_DIR/.git" ]]; then
-    die "~/.kurisu is already initialized. To re-initialize, remove $KURISU_DIR first."
+if [[ -d "$HOLLOW_DIR/.git" ]]; then
+    die "~/.hollow-attractor is already initialized. To re-initialize, remove $HOLLOW_DIR first."
 fi
 
-if [[ -e "$KURISU_DIR" && ! -d "$KURISU_DIR" ]]; then
-    die "$KURISU_DIR exists and is not a directory."
+if [[ -e "$HOLLOW_DIR" && ! -d "$HOLLOW_DIR" ]]; then
+    die "$HOLLOW_DIR exists and is not a directory."
 fi
 
 # ── Directory structure ───────────────────────────────────────────────────────
 
-info "Creating directory structure at $KURISU_DIR"
+info "Creating directory structure at $HOLLOW_DIR"
 
 mkdir -p \
-    "$KURISU_DIR/attractor/divergences" \
-    "$KURISU_DIR/worldlines"
+    "$HOLLOW_DIR/attractor/divergences" \
+    "$HOLLOW_DIR/worldlines"
 
 # ── .gitignore ────────────────────────────────────────────────────────────────
 
-cat > "$KURISU_DIR/.gitignore" << 'EOF'
-# Reading Steiner exports are portable artifacts, not managed state.
-reading-steiner-*.txt
+cat > "$HOLLOW_DIR/.gitignore" << 'EOF'
+# Imprint exports are portable artifacts, not managed state.
+imprint-*.txt
 EOF
 
 # ── attractor/preferences.yaml ────────────────────────────────────────────────
 
-cat > "$KURISU_DIR/attractor/preferences.yaml" << EOF
-kurisu_version: $KURISU_VERSION
+cat > "$HOLLOW_DIR/attractor/preferences.yaml" << EOF
+hollow_version: $HOLLOW_VERSION
 reminder_surfacing: on_invocation   # on_invocation | disabled
-dmail_threshold_days: 7
+anneal_threshold_days: 7
 stale_question_days: 14
 git_auto_commit: true
 default_worldline: null             # null = attractor state on session start
@@ -58,7 +58,7 @@ EOF
 
 # ── attractor/ship-log.md ─────────────────────────────────────────────────────
 
-cat > "$KURISU_DIR/attractor/ship-log.md" << EOF
+cat > "$HOLLOW_DIR/attractor/ship-log.md" << EOF
 # Ship Log
 last_updated: $TODAY
 
@@ -72,12 +72,12 @@ last_updated: $TODAY
 (none)
 
 ## Recent Meaningful Updates (rolling 14 days)
-- $TODAY: [attractor] kurisu bootstrapped — version $KURISU_VERSION
+- $TODAY: [attractor] hollow-attractor bootstrapped — version $HOLLOW_VERSION
 
 ## Reminders
 (none)
 
-## D-Mail History
+## Anneal History
 (none)
 EOF
 
@@ -85,38 +85,38 @@ EOF
 # Git does not track empty directories. This placeholder is removed automatically
 # when the first real divergence file is created.
 
-touch "$KURISU_DIR/attractor/divergences/.gitkeep"
+touch "$HOLLOW_DIR/attractor/divergences/.gitkeep"
 
 # ── worldlines/.gitkeep ───────────────────────────────────────────────────────
 # Same pattern. Removed when the first worldline is created.
 
-touch "$KURISU_DIR/worldlines/.gitkeep"
+touch "$HOLLOW_DIR/worldlines/.gitkeep"
 
 # ── Git init ─────────────────────────────────────────────────────────────────
 
 info "Initializing git repository"
 
-git -C "$KURISU_DIR" init --quiet
+git -C "$HOLLOW_DIR" init --quiet
 
 # Identity is set locally so it never conflicts with the user's global git config.
-git -C "$KURISU_DIR" config --local user.email "kurisu@local"
-git -C "$KURISU_DIR" config --local user.name  "Kurisu"
+git -C "$HOLLOW_DIR" config --local user.email "hollow@local"
+git -C "$HOLLOW_DIR" config --local user.name  "Hollow Attractor"
 
 # ── Initial commit ────────────────────────────────────────────────────────────
 
-git -C "$KURISU_DIR" add .
-git -C "$KURISU_DIR" commit --quiet -m "kurisu: bootstrap"
+git -C "$HOLLOW_DIR" add .
+git -C "$HOLLOW_DIR" commit --quiet -m "hollow: bootstrap"
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 
 success "Bootstrap complete."
 echo
-echo "  Location : $KURISU_DIR"
-echo "  Version  : $KURISU_VERSION"
+echo "  Location : $HOLLOW_DIR"
+echo "  Version  : $HOLLOW_VERSION"
 echo "  Git log  :"
-git -C "$KURISU_DIR" log --oneline
+git -C "$HOLLOW_DIR" log --oneline
 echo
-echo "  ~/.kurisu contains sensitive personal data."
+echo "  ~/.hollow-attractor contains sensitive personal data."
 echo "  Do not push to a public remote."
 echo
-info "Start a Kurisu session and say: kurisu, create a new worldline"
+info "Start a Hollow Attractor session and say: hollow, create a new worldline"

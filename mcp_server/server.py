@@ -405,7 +405,7 @@ def write_reading_steiner(content: str) -> str:
 def commit(message: str) -> str:
     """Stage all changes in ~/.hollow-attractor and create a git commit.
 
-    Git identity is always 'Kurisu <kurisu@local>' (set at bootstrap).
+    Git identity is always 'Hollow Attractor <hollow@local>' (set at bootstrap).
     Call this after every meaningful update per the Hollow Attractor protocol.
 
     message: full commit message following Hollow Attractor conventions,
