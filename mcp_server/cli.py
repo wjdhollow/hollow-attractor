@@ -19,19 +19,26 @@ def main() -> None:
 
     if args and args[0] == "init":
         _init()
-    elif not args and sys.stdin.isatty():
-        # Running interactively with no args — show help instead of hanging on stdin
+    elif args and args[0] in ("--version", "-V"):
+        from importlib.metadata import version
+        print(version("hollow-attractor"))
+    elif not args and not sys.stdin.isatty():
+        # Stdin is a pipe with no args: MCP stdio transport for Claude Desktop
+        from mcp_server.server import mcp
+        mcp.run()
+    else:
+        # Interactive terminal (with or without unrecognized args) — show help
         print("Hollow Attractor")
         print()
         print("Usage:")
-        print("  hollow init     Bootstrap ~/.hollow-attractor")
-        print("  hollow          Run MCP server via stdio (used by Claude Desktop)")
+        print("  hollow init        Bootstrap ~/.hollow-attractor")
+        print("  hollow --version   Show version")
+        print("  hollow             Run MCP server via stdio (used by Claude Desktop)")
         print()
         print("See https://github.com/wjdhollow/hollow-attractor for setup instructions.")
-    else:
-        # No args + stdin is a pipe: MCP stdio transport for Claude Desktop
-        from mcp_server.server import mcp
-        mcp.run()
+        if args:
+            print(f"\nUnknown command: {args[0]}", file=sys.stderr)
+            sys.exit(1)
 
 
 def _init() -> None:
