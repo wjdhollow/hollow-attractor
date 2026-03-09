@@ -1,0 +1,23 @@
+# Planning docs — internal only, not shipped
+planning/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+dist/
+build/
+
+# uv
+.uv/
+
+# Certs (local dev only)
+certs/
+
+# Env
+.env
+
+# Local dev config (machine-specific)
+.mcp.json
+.claude/
