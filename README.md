@@ -27,15 +27,11 @@ Everything lives in `~/.hollow-attractor/` as plain text files under git. No clo
 
 ## Install
 
-> **PyPI package coming soon.** For now, install from source.
-
-**Requirements:** Python 3.10+, [uv](https://docs.astral.sh/uv/), git, [Claude Desktop](https://claude.ai/download)
+**Requirements:** Python 3.10+, git, [Claude Desktop](https://claude.ai/download)
 
 ```bash
-git clone https://github.com/wjdhollow/hollow-attractor
-cd hollow-attractor
-uv sync
-bash hollow-init.sh
+pip install hollow-attractor
+hollow init
 ```
 
 Then add the MCP server to Claude Desktop. Edit `claude_desktop_config.json`:
@@ -47,18 +43,13 @@ Then add the MCP server to Claude Desktop. Edit `claude_desktop_config.json`:
 {
   "mcpServers": {
     "hollow-attractor": {
-      "command": "/path/to/uv",
-      "args": [
-        "run",
-        "--project", "/path/to/hollow-attractor",
-        "python3", "/path/to/hollow-attractor/mcp_server/server.py"
-      ]
+      "command": "hollow"
     }
   }
 }
 ```
 
-Replace paths with your actual locations. Restart Claude Desktop.
+Restart Claude Desktop.
 
 ---
 

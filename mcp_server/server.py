@@ -31,9 +31,11 @@ WORLDLINES_DIR    = ROOT_DIR / "worldlines"
 DIVERGENCES_DIR   = ATTRACTOR_DIR / "divergences"
 BACKUP_DIR        = Path(os.environ.get("HOLLOW_BACKUP_DIR", str(Path.home() / "hollow-backups")))
 
-# SYSTEM_PROMPT.md lives one level above mcp_server/ in the repo root.
-REPO_DIR          = Path(__file__).parent.parent
-SYSTEM_PROMPT_PATH = REPO_DIR / "SYSTEM_PROMPT.md"
+# SYSTEM_PROMPT.md: bundled inside the package when pip-installed,
+# or at the repo root when running from source.
+_pkg_data_prompt  = Path(__file__).parent / "SYSTEM_PROMPT.md"
+_repo_root_prompt = Path(__file__).parent.parent / "SYSTEM_PROMPT.md"
+SYSTEM_PROMPT_PATH = _pkg_data_prompt if _pkg_data_prompt.exists() else _repo_root_prompt
 
 mcp = FastMCP(
     "hollow-attractor",
