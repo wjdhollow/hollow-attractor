@@ -46,6 +46,14 @@ mcp = FastMCP(
     ),
 )
 
+# Set serverInfo.version to the hollow-attractor package version.
+# FastMCP defaults to the mcp library version, which is misleading in diagnostics.
+try:
+    from importlib.metadata import version as _pkg_version
+    mcp._mcp_server.version = _pkg_version("hollow-attractor")
+except Exception:
+    pass
+
 # Suppress outputSchema on all tools. FastMCP 1.x emits outputSchema
 # unconditionally based on return type annotations, but outputSchema is only
 # defined in the MCP 2025-03-26 spec. Clients negotiating 2024-11-05 (including
@@ -505,6 +513,15 @@ def hollow_start() -> str:
         f"Acknowledge your active worldlines and any due reminders, "
         f"then wait for the user's first invocation."
     )
+
+
+# ── Schema cleanup ────────────────────────────────────────────────────────────
+# Strip pydantic-generated "title" from the top-level inputSchema object on
+# every tool. Pydantic emits e.g. {"title": "read_ship_logArguments", ...}.
+# The "title" key is not part of the MCP 2024-11-05 inputSchema spec and
+# may cause Claude Code to silently reject the entire tools/list response.
+for _t in mcp._tool_manager._tools.values():
+    _t.parameters.pop("title", None)
 
 
 # ── Smoke test ────────────────────────────────────────────────────────────────

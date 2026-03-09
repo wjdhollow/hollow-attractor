@@ -34,7 +34,9 @@ pip install hollow-attractor
 hollow init
 ```
 
-Then add the MCP server to Claude Desktop. Edit `claude_desktop_config.json`:
+Then configure the MCP server for your Claude client:
+
+**Claude Desktop** — edit `claude_desktop_config.json`:
 
 - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
@@ -43,13 +45,32 @@ Then add the MCP server to Claude Desktop. Edit `claude_desktop_config.json`:
 {
   "mcpServers": {
     "hollow-attractor": {
-      "command": "hollow"
+      "command": "hollow",
+      "args": [],
+      "env": {}
     }
   }
 }
 ```
 
-Restart Claude Desktop.
+**Claude Code (CLI)** — edit `~/.claude.json`, using the full path to the `hollow` binary:
+
+```json
+{
+  "mcpServers": {
+    "hollow-attractor": {
+      "type": "stdio",
+      "command": "/full/path/to/hollow",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+
+To find the full path: `which hollow` (macOS/Linux) or `where hollow` (Windows).
+
+Restart Claude Desktop / Claude Code after saving.
 
 ---
 
