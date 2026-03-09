@@ -67,12 +67,17 @@ See [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) for the full protocol and [`SCHEMAS.m
 
 ---
 
+## Migrating from an existing system
+
+Already tracking tasks in Notion, Todoist, a custom Claude setup, or anywhere else? See [MIGRATION.md](MIGRATION.md) for a prompt you can paste into Claude Desktop to bring your existing backlog across.
+
+---
+
 ## Status
 
 V1 is complete and in active daily use. The core protocol is stable.
 
 Planned next:
-- `pip install hollow-attractor` + `hollow init` CLI
 - Homebrew formula
 - Hosted sync (V2)
 
