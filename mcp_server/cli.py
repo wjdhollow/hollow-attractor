@@ -19,8 +19,17 @@ def main() -> None:
 
     if args and args[0] == "init":
         _init()
+    elif not args and sys.stdin.isatty():
+        # Running interactively with no args — show help instead of hanging on stdin
+        print("Hollow Attractor")
+        print()
+        print("Usage:")
+        print("  hollow init     Bootstrap ~/.hollow-attractor")
+        print("  hollow          Run MCP server via stdio (used by Claude Desktop)")
+        print()
+        print("See https://github.com/wjdhollow/hollow-attractor for setup instructions.")
     else:
-        # Default: run MCP server (stdio transport for Claude Desktop)
+        # No args + stdin is a pipe: MCP stdio transport for Claude Desktop
         from mcp_server.server import mcp
         mcp.run()
 

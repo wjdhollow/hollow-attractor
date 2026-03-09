@@ -46,6 +46,18 @@ mcp = FastMCP(
     ),
 )
 
+# Suppress outputSchema on all tools. FastMCP 1.x emits outputSchema
+# unconditionally based on return type annotations, but outputSchema is only
+# defined in the MCP 2025-03-26 spec. Clients negotiating 2024-11-05 (including
+# Claude Code) may silently discard the entire tools/list response when they
+# encounter it. Setting structured_output=False prevents the field from being
+# emitted regardless of return annotation.
+def tool(fn=None, **kwargs):
+    kwargs.setdefault("structured_output", False)
+    if fn is not None:
+        return mcp.tool(**kwargs)(fn)
+    return mcp.tool(**kwargs)
+
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
 def _today() -> str:
@@ -162,7 +174,7 @@ def _prefs_template() -> str:
 
 # ── Read tools ────────────────────────────────────────────────────────────────
 
-@mcp.tool()
+@tool()
 def read_ship_log() -> str:
     """Read the Hollow Attractor Ship Log (global cross-session index).
     Call this at the start of every session before any other operation."""
@@ -171,7 +183,7 @@ def read_ship_log() -> str:
     return _read(ATTRACTOR_DIR / "ship-log.md")
 
 
-@mcp.tool()
+@tool()
 def read_worldline(slug: str) -> str:
     """Read state.md and items.md for a worldline, concatenated with a separator.
 
@@ -187,7 +199,7 @@ def read_worldline(slug: str) -> str:
     return f"{state}\n\n---\n\n{items}"
 
 
-@mcp.tool()
+@tool()
 def list_worldlines() -> str:
     """List all worldline slugs, one per line.
     Returns '(none)' if no worldlines exist yet."""
@@ -203,7 +215,7 @@ def list_worldlines() -> str:
     return "\n".join(slugs) if slugs else "(none)"
 
 
-@mcp.tool()
+@tool()
 def read_archive(slug: str, period: str) -> str:
     """Read an archive file for a worldline.
 
@@ -218,7 +230,7 @@ def read_archive(slug: str, period: str) -> str:
     return _read(archive_dir / filename)
 
 
-@mcp.tool()
+@tool()
 def read_divergence(slug: str) -> str:
     """Read a worldline divergence file.
 
@@ -230,7 +242,7 @@ def read_divergence(slug: str) -> str:
     return _read(DIVERGENCES_DIR / f"div-{slug}.md")
 
 
-@mcp.tool()
+@tool()
 def list_divergences() -> str:
     """List all divergence slugs (without the 'div-' prefix), one per line.
     Returns '(none)' if no divergences exist."""
@@ -246,7 +258,7 @@ def list_divergences() -> str:
     return "\n".join(slugs) if slugs else "(none)"
 
 
-@mcp.tool()
+@tool()
 def read_preferences(scope: str = "global") -> str:
     """Read a preferences YAML file.
 
@@ -262,7 +274,7 @@ def read_preferences(scope: str = "global") -> str:
 
 # ── Write tools ───────────────────────────────────────────────────────────────
 
-@mcp.tool()
+@tool()
 def write_ship_log(content: str) -> str:
     """Overwrite the Ship Log with new content.
     Always update last_updated timestamp in the content before calling."""
@@ -271,7 +283,7 @@ def write_ship_log(content: str) -> str:
     return _write(ATTRACTOR_DIR / "ship-log.md", content)
 
 
-@mcp.tool()
+@tool()
 def write_worldline_state(slug: str, content: str) -> str:
     """Overwrite state.md for a worldline.
     Always update last_updated timestamp in the content before calling.
@@ -285,7 +297,7 @@ def write_worldline_state(slug: str, content: str) -> str:
     return _write(_worldline_dir(slug) / "state.md", content)
 
 
-@mcp.tool()
+@tool()
 def write_worldline_items(slug: str, content: str) -> str:
     """Overwrite items.md for a worldline.
     Always update last_updated timestamp in the content before calling.
@@ -299,7 +311,7 @@ def write_worldline_items(slug: str, content: str) -> str:
     return _write(_worldline_dir(slug) / "items.md", content)
 
 
-@mcp.tool()
+@tool()
 def create_worldline(slug: str) -> str:
     """Create a new worldline directory with template files.
     Fails if the worldline already exists.
@@ -328,7 +340,7 @@ def create_worldline(slug: str) -> str:
     return f"ok: worldline '{slug}' created"
 
 
-@mcp.tool()
+@tool()
 def delete_worldline(slug: str) -> str:
     """Remove a worldline directory and all its contents.
 
@@ -354,7 +366,7 @@ def delete_worldline(slug: str) -> str:
         return f"ERROR: {exc}"
 
 
-@mcp.tool()
+@tool()
 def write_divergence(slug: str, content: str) -> str:
     """Create or overwrite a worldline divergence file.
 
@@ -366,7 +378,7 @@ def write_divergence(slug: str, content: str) -> str:
     return _write(DIVERGENCES_DIR / f"div-{slug}.md", content)
 
 
-@mcp.tool()
+@tool()
 def write_archive(slug: str, period: str, content: str) -> str:
     """Write an archive file for a worldline.
 
@@ -380,7 +392,7 @@ def write_archive(slug: str, period: str, content: str) -> str:
     return _write(archive_dir / filename, content)
 
 
-@mcp.tool()
+@tool()
 def write_imprint(content: str) -> str:
     """Write an Imprint export to ~/hollow-backups/imprint-{today}.txt.
 
@@ -395,7 +407,7 @@ def write_imprint(content: str) -> str:
 
 
 # Keep legacy alias so old Reading Steiner calls still work during migration
-@mcp.tool()
+@tool()
 def write_reading_steiner(content: str) -> str:
     """Deprecated alias for write_imprint. Use write_imprint instead."""
     return write_imprint(content)
@@ -403,7 +415,7 @@ def write_reading_steiner(content: str) -> str:
 
 # ── Git tools ─────────────────────────────────────────────────────────────────
 
-@mcp.tool()
+@tool()
 def commit(message: str) -> str:
     """Stage all changes in ~/.hollow-attractor and create a git commit.
 
@@ -428,14 +440,14 @@ def commit(message: str) -> str:
 
 # ── Utility tools ─────────────────────────────────────────────────────────────
 
-@mcp.tool()
+@tool()
 def initialized() -> str:
     """Check whether ~/.hollow-attractor is a valid Hollow Attractor installation.
     Returns 'true' or 'false'."""
     return "true" if (ROOT_DIR / ".git").exists() else "false"
 
 
-@mcp.tool()
+@tool()
 def get_version() -> str:
     """Read hollow_version from global preferences.yaml."""
     prefs = ATTRACTOR_DIR / "preferences.yaml"
