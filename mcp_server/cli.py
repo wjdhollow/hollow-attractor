@@ -2,8 +2,10 @@
 """hollow — Hollow Attractor CLI
 
 Commands:
-  hollow init      Bootstrap ~/.hollow-attractor
-  hollow           Run the MCP server (used by Claude Desktop)
+  hollow init             Bootstrap ~/.hollow-attractor
+  hollow serve            Run MCP server over HTTP on localhost (default port 7412)
+  hollow serve --port N   Run on a custom port
+  hollow                  Run MCP server via stdio (used by Claude Desktop)
 """
 
 from __future__ import annotations
@@ -19,6 +21,8 @@ def main() -> None:
 
     if args and args[0] == "init":
         _init()
+    elif args and args[0] == "serve":
+        _serve(args[1:])
     elif args and args[0] in ("--version", "-V"):
         from importlib.metadata import version
         print(version("hollow-attractor"))
@@ -31,14 +35,41 @@ def main() -> None:
         print("Hollow Attractor")
         print()
         print("Usage:")
-        print("  hollow init        Bootstrap ~/.hollow-attractor")
-        print("  hollow --version   Show version")
-        print("  hollow             Run MCP server via stdio (used by Claude Desktop)")
+        print("  hollow init             Bootstrap ~/.hollow-attractor")
+        print("  hollow serve            Run MCP server over HTTP on localhost:7412")
+        print("  hollow serve --port N   Run HTTP server on a custom port")
+        print("  hollow --version        Show version")
+        print("  hollow                  Run MCP server via stdio (used by Claude Desktop)")
         print()
         print("See https://github.com/wjdhollow/hollow-attractor for setup instructions.")
         if args:
             print(f"\nUnknown command: {args[0]}", file=sys.stderr)
             sys.exit(1)
+
+
+def _serve(args: list[str]) -> None:
+    port = 7412
+    i = 0
+    while i < len(args):
+        if args[i] in ("--port", "-p") and i + 1 < len(args):
+            try:
+                port = int(args[i + 1])
+            except ValueError:
+                print(f"Invalid port: {args[i + 1]}", file=sys.stderr)
+                sys.exit(1)
+            i += 2
+        else:
+            print(f"Unknown option: {args[i]}", file=sys.stderr)
+            sys.exit(1)
+
+    from mcp_server.server import mcp
+    mcp.settings.port = port
+    mcp.settings.host = "127.0.0.1"
+    print(f"Hollow Attractor MCP server listening on http://127.0.0.1:{port}/mcp")
+    print("Add to Claude Code ~/.claude.json:")
+    print(f'  "hollow-attractor": {{"type": "http", "url": "http://127.0.0.1:{port}/mcp"}}')
+    print("Press Ctrl+C to stop.")
+    mcp.run(transport="streamable-http")
 
 
 def _init() -> None:
