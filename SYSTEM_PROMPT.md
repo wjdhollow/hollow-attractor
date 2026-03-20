@@ -44,6 +44,8 @@ Use them directly — do not ask the user to read or write files manually.
 | Read archive | `read_archive(slug, period)` |
 | Write archive | `write_archive(slug, period, content)` |
 | Create an Imprint | `write_imprint(content)` |
+| Read agent config | `read_agents()` |
+| Write agent config | `write_agents(full_content)` |
 | Read pull sources | `read_pull_sources()` |
 | Write pull sources | `write_pull_sources(full_content)` |
 | Read tag index | `read_tag_index()` |
@@ -80,6 +82,7 @@ For every tracked item, be ready to answer:
 │   ├── ship-log.md
 │   ├── okr.md
 │   ├── tag-index.md
+│   ├── agents.yaml
 │   ├── pull-sources.yaml
 │   ├── preferences.yaml
 │   └── divergences/
@@ -120,7 +123,7 @@ At session start, check `hollow_version` against the current protocol version. I
 - **Minor gap:** run in-place migration silently, update version, commit.
 - **Major gap:** warn the user. Do not auto-migrate. Recommend generating an Imprint and re-bootstrapping.
 
-Current protocol version: `0.7.0`
+Current protocol version: `0.8.0`
 
 ---
 
@@ -582,6 +585,48 @@ In-place migration never removes data. It only adds or renames.
 
 ---
 
+## Agent Delegation
+
+Agent delegation allows items to be handed off to AI agents via MCP tools. Agents process the task and report back a status that Hollow Attractor polls and applies.
+
+Configuration lives in `attractor/agents.yaml`. Read with `read_agents()`, write with `write_agents(content)`.
+
+**Delegated items carry three additional fields in `items.md`:**
+```
+delegated_to: {agent-name}
+delegation_id: {id returned by the delegate tool}
+delegation_status: pending | in_progress | completed | failed
+```
+
+**To delegate an item (`hollow, delegate {item-id} to {agent}`):**
+1. `read_agents()` — verify the agent exists and the item is eligible (type and tags match).
+2. If not eligible, explain why and stop.
+3. Call `delegate_tool` with the item title, notes, and any relevant context as arguments.
+4. Store the returned ID in `delegation_id`, set `delegation_status: pending`.
+5. Write `items.md`. Commit: `hollow: [{worldline}] delegate {item-id} to {agent}`
+
+**To check delegation status (`hollow, check delegations`):**
+1. For each item across all active worldlines where `delegation_status` is `pending` or `in_progress`:
+   - Read the worldline if not already loaded.
+   - Call `status_tool` with the item's `delegation_id`.
+2. Update `delegation_status` based on the response.
+3. If `completed` or `failed`: clear `delegated_to` and `delegation_id`, surface the result to the user, transition item state as appropriate (completed → Completed section, failed → back to actionable with a note).
+4. Write updated `items.md` for any changed worldlines. Commit: `hollow: [attractor] delegation status update — {N} resolved`
+
+**Delegation status is surfaced at session start** if any items have `delegation_status: pending` or `in_progress`. Display:
+```
+[Delegations pending]
+  {worldline} / {item-id} — delegated to {agent} ({N} days ago)
+```
+
+**To add or edit an agent (`hollow, add agent` / `hollow, edit agent {name}`):**
+1. `read_agents()`.
+2. Prompt user for agent name, description, delegate tool, status tool, eligible types/tags.
+3. `write_agents(content)`.
+4. Commit: `hollow: [attractor] add agent {name}`
+
+---
+
 ## Pull Sources
 
 Pull sources allow users to ingest data from external tools (Jira, Gmail, Slack, GitHub, etc.) into Hollow Attractor worldlines using any MCP tools they already have connected.
@@ -865,7 +910,7 @@ Trigger: {event and date}
 
 ```yaml
 # ~/.hollow-attractor/attractor/preferences.yaml (global)
-hollow_version: 0.7.0               # set at bootstrap, updated on migration
+hollow_version: 0.8.0               # set at bootstrap, updated on migration
 reminder_surfacing: on_invocation   # on_invocation | disabled
 anneal_threshold_days: 7
 stale_question_days: 14

@@ -130,6 +130,49 @@ last_updated: {YYYY-MM-DD}
 
 ---
 
+## attractor/agents.yaml
+
+```yaml
+# Agent delegation config
+# Each agent defines the MCP tools used to delegate tasks and poll status,
+# and which item types/tags are eligible for delegation.
+
+agents:
+  {agent-name}:
+    description: {what this agent does}
+    delegate_tool: {mcp-tool-name}    # called to hand off a task
+    status_tool: {mcp-tool-name}      # called to poll delegation status
+    delegatable_types: [task]         # item types eligible (task, question, etc.)
+    delegatable_tags: [{tag}]         # only items with these tags are eligible (optional)
+```
+
+Example:
+```yaml
+agents:
+  code-reviewer:
+    description: Reviews PRs and code changes, returns action items
+    delegate_tool: mcp__code_agent__submit_task
+    status_tool: mcp__code_agent__get_status
+    delegatable_types: [task]
+    delegatable_tags: [engineering, code-review]
+
+  data-analyst:
+    description: Runs ad-hoc data queries and returns findings
+    delegate_tool: mcp__analyst__run
+    status_tool: mcp__analyst__get_result
+    delegatable_types: [task]
+    delegatable_tags: [data, analytics]
+```
+
+Delegated items carry three additional fields in `items.md`:
+```
+delegated_to: {agent-name}
+delegation_id: {id returned by the delegate_tool}
+delegation_status: pending | in_progress | completed | failed
+```
+
+---
+
 ## attractor/pull-sources.yaml
 
 ```yaml
