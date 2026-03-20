@@ -38,6 +38,7 @@ last_updated: {YYYY-MM-DD}
 # Worldline: {slug}
 created: {YYYY-MM-DD}
 okr: []
+tags: []
 last_anneal: null
 last_updated: {YYYY-MM-DD}
 
@@ -104,6 +105,23 @@ last_updated: {YYYY-MM-DD}
 # anneal_threshold_days: 14
 # stale_question_days: 21
 ```
+
+---
+
+## attractor/tag-index.md
+
+```markdown
+# Tag Index
+last_updated: {YYYY-MM-DD}
+
+| tag | worldlines |
+|-----|------------|
+| {tag} | {slug}, {slug} |
+```
+
+Tags are free-form lowercase strings defined at the worldline level.
+The tag index is derived — updated by the protocol whenever worldline tags change.
+Use it for cross-worldline discovery: `hollow, find worldlines tagged {tag}`.
 
 ---
 

@@ -44,6 +44,8 @@ Use them directly — do not ask the user to read or write files manually.
 | Read archive | `read_archive(slug, period)` |
 | Write archive | `write_archive(slug, period, content)` |
 | Create an Imprint | `write_imprint(content)` |
+| Read tag index | `read_tag_index()` |
+| Write tag index | `write_tag_index(full_content)` |
 | Read OKR index | `read_okr_index()` |
 | Write OKR index | `write_okr_index(full_content)` |
 | Commit after update | `commit(message)` |
@@ -75,6 +77,7 @@ For every tracked item, be ready to answer:
 ├── attractor/
 │   ├── ship-log.md
 │   ├── okr.md
+│   ├── tag-index.md
 │   ├── preferences.yaml
 │   └── divergences/
 │       └── div-{slug}.md
@@ -114,7 +117,7 @@ At session start, check `hollow_version` against the current protocol version. I
 - **Minor gap:** run in-place migration silently, update version, commit.
 - **Major gap:** warn the user. Do not auto-migrate. Recommend generating an Imprint and re-bootstrapping.
 
-Current protocol version: `0.3.0`
+Current protocol version: `0.4.0`
 
 ---
 
@@ -478,6 +481,55 @@ In-place migration never removes data. It only adds or renames.
 
 ---
 
+## Tag Search
+
+Each worldline carries a free-form `tags` list in `state.md` frontmatter for discovery and cross-worldline search.
+
+```yaml
+tags: [engineering, backend, q1]
+```
+
+- Tags are free-form, lowercase, hyphen-separated strings. No predefined list.
+- A worldline can have zero or many tags.
+- The tag index (`attractor/tag-index.md`) is the derived lookup: tag → worldlines. Updated by the protocol whenever tags change.
+
+**Tags vs OKRs:** `tags` are for discovery and search (free-form, worldline-defined). `okr` slugs are for alignment tracking (structured, defined in `okr.md`).
+
+**To tag a worldline (`hollow, tag {worldline} with {tags}`):**
+1. `read_worldline(slug)` — get current state.md.
+2. Update `tags:` in frontmatter.
+3. `write_worldline_state(slug, content)`.
+4. `read_tag_index()` — update the relevant rows (add worldline to tag rows, create new rows as needed, remove worldline from rows for removed tags).
+5. `write_tag_index(content)`.
+6. Commit: `hollow: [{worldline}] tag {tags}`
+
+**To search by tag (`hollow, find worldlines tagged {tag}`):**
+1. `read_tag_index()`.
+2. Return matching worldlines from the table row for `{tag}`.
+3. Do not commit — read-only.
+
+**To show all tags (`hollow, show tags`):**
+1. `read_tag_index()`.
+2. Display the full table. Do not commit.
+
+**Tag index format (`attractor/tag-index.md`):**
+```markdown
+# Tag Index
+last_updated: {YYYY-MM-DD}
+
+| tag | worldlines |
+|-----|------------|
+| {tag} | {slug}, {slug} |
+```
+
+**Tag index maintenance rules:**
+- A tag row exists if and only if at least one worldline carries that tag.
+- Worldlines appear in a tag's row in alphabetical order.
+- Remove a tag row when the last worldline drops it.
+- Always update `last_updated` before writing.
+
+---
+
 ## OKR Alignment
 
 Each worldline declares which OKRs it contributes to via the `okr` field in `state.md` frontmatter.
@@ -592,6 +644,7 @@ last_updated: {date}
 # Worldline: {slug}
 created: {date}
 okr: []
+tags: []
 last_anneal: {date or null}
 last_updated: {date}
 
@@ -661,7 +714,7 @@ Trigger: {event and date}
 
 ```yaml
 # ~/.hollow-attractor/attractor/preferences.yaml (global)
-hollow_version: 0.3.0               # set at bootstrap, updated on migration
+hollow_version: 0.4.0               # set at bootstrap, updated on migration
 reminder_surfacing: on_invocation   # on_invocation | disabled
 anneal_threshold_days: 7
 stale_question_days: 14
