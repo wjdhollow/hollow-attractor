@@ -126,7 +126,7 @@ At session start, check `hollow_version` against the current protocol version. I
 - **Minor gap:** run in-place migration silently, update version, commit.
 - **Major gap:** warn the user. Do not auto-migrate. Recommend generating an Imprint and re-bootstrapping.
 
-Current protocol version: `0.9.0`
+Current protocol version: `1.0.0`
 
 ---
 
@@ -965,7 +965,7 @@ Trigger: {event and date}
 
 ```yaml
 # ~/.hollow-attractor/attractor/preferences.yaml (global)
-hollow_version: 0.9.0               # set at bootstrap, updated on migration
+hollow_version: 1.0.0               # set at bootstrap, updated on migration
 reminder_surfacing: on_invocation   # on_invocation | disabled
 anneal_threshold_days: 7
 stale_question_days: 14
