@@ -44,6 +44,8 @@ Use them directly — do not ask the user to read or write files manually.
 | Read archive | `read_archive(slug, period)` |
 | Write archive | `write_archive(slug, period, content)` |
 | Create an Imprint | `write_imprint(content)` |
+| Read recurring tasks | `read_recurring()` |
+| Write recurring tasks | `write_recurring(full_content)` |
 | Read agent config | `read_agents()` |
 | Write agent config | `write_agents(full_content)` |
 | Read pull sources | `read_pull_sources()` |
@@ -82,6 +84,7 @@ For every tracked item, be ready to answer:
 │   ├── ship-log.md
 │   ├── okr.md
 │   ├── tag-index.md
+│   ├── recurring.yaml
 │   ├── agents.yaml
 │   ├── pull-sources.yaml
 │   ├── preferences.yaml
@@ -123,7 +126,7 @@ At session start, check `hollow_version` against the current protocol version. I
 - **Minor gap:** run in-place migration silently, update version, commit.
 - **Major gap:** warn the user. Do not auto-migrate. Recommend generating an Imprint and re-bootstrapping.
 
-Current protocol version: `0.8.0`
+Current protocol version: `0.9.0`
 
 ---
 
@@ -585,6 +588,58 @@ In-place migration never removes data. It only adds or renames.
 
 ---
 
+## Recurring Tasks
+
+Recurring tasks are scheduled items defined in `attractor/recurring.yaml` that surface automatically at session start when they are due.
+
+Read with `read_recurring()`, write with `write_recurring(content)`.
+
+**Cadence → interval days:**
+
+| Cadence | Days |
+|---|---|
+| `daily` | 1 |
+| `weekly` | 7 |
+| `every N weeks` | N × 7 |
+| `every N months` | N × 30 |
+| `monthly` | 30 |
+| `quarterly` | 90 |
+| `yearly` | 365 |
+
+**Session start — recurring task check:**
+
+After the stale worldline check, read `attractor/recurring.yaml`. For each task:
+- If `last_triggered: null` — the task has never been triggered; treat as due immediately.
+- If `today - last_triggered >= interval_days` — the task is due.
+
+Surface all due tasks before entering the active worldline or attractor state:
+```
+[Recurring tasks due]
+  weekly-review (work) — due weekly, last triggered {date}
+  okr-review (work) — due quarterly, never triggered
+```
+
+On user acknowledgement:
+1. Create an item in the target worldline's `items.md` for each due task (type and notes from config).
+2. Update `last_triggered` to today for each triggered task in `recurring.yaml`.
+3. Write `recurring.yaml` and the affected `items.md` files.
+4. Commit: `hollow: [attractor] trigger recurring tasks — {list of task names}`
+
+**Do not auto-create items silently.** Always surface due tasks and wait for acknowledgement before writing.
+
+**To add or edit a recurring task (`hollow, add recurring task` / `hollow, edit recurring {name}`):**
+1. `read_recurring()`.
+2. Prompt for: name, title, cadence, target worldline, type, optional notes.
+3. `write_recurring(content)`.
+4. Commit: `hollow: [attractor] add recurring task {name}`
+
+**To list recurring tasks (`hollow, show recurring tasks`):**
+1. `read_recurring()`.
+2. Display each task with its cadence, target worldline, and days until next due.
+3. Do not commit — read-only.
+
+---
+
 ## Agent Delegation
 
 Agent delegation allows items to be handed off to AI agents via MCP tools. Agents process the task and report back a status that Hollow Attractor polls and applies.
@@ -910,7 +965,7 @@ Trigger: {event and date}
 
 ```yaml
 # ~/.hollow-attractor/attractor/preferences.yaml (global)
-hollow_version: 0.8.0               # set at bootstrap, updated on migration
+hollow_version: 0.9.0               # set at bootstrap, updated on migration
 reminder_surfacing: on_invocation   # on_invocation | disabled
 anneal_threshold_days: 7
 stale_question_days: 14

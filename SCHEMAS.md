@@ -130,6 +130,61 @@ last_updated: {YYYY-MM-DD}
 
 ---
 
+## attractor/recurring.yaml
+
+```yaml
+# Recurring tasks
+# Each entry defines a task that should be created on a schedule.
+# Supported cadences: daily, weekly, every N weeks, monthly, quarterly, yearly
+# last_triggered is updated by the protocol each time the task is surfaced/created.
+
+tasks:
+  {task-name}:
+    title: {item title}
+    cadence: {daily|weekly|every 2 weeks|monthly|quarterly|yearly}
+    worldline: {target-worldline-slug}
+    type: task                      # item type: task | question
+    notes: {optional context}       # optional — added to item notes field
+    last_triggered: null            # updated by protocol; null = never triggered
+```
+
+Cadence → interval days mapping used by the protocol:
+- `daily` → 1
+- `weekly` → 7
+- `every N weeks` → N × 7
+- `monthly` → 30
+- `quarterly` → 90
+- `yearly` → 365
+
+Example:
+```yaml
+tasks:
+  weekly-review:
+    title: Weekly work review
+    cadence: weekly
+    worldline: work
+    type: task
+    notes: Review open items, update priorities, check OKR alignment.
+    last_triggered: null
+
+  okr-review:
+    title: Quarterly OKR review
+    cadence: quarterly
+    worldline: work
+    type: task
+    notes: Score Q OKRs, set next quarter objectives.
+    last_triggered: null
+
+  pest-control-check:
+    title: Check Pro Active Pest Control next visit
+    cadence: every 2 months
+    worldline: home
+    type: task
+    last_triggered: null
+```
+
+---
+
 ## attractor/agents.yaml
 
 ```yaml

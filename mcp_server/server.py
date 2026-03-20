@@ -404,6 +404,26 @@ def write_archive(slug: str, period: str, content: str) -> str:
 
 
 @tool()
+def read_recurring() -> str:
+    """Read the recurring tasks config (attractor/recurring.yaml).
+    Returns the full content, or a not-found message if the file doesn't exist yet."""
+    if err := _check_initialized():
+        return err
+    path = ATTRACTOR_DIR / "recurring.yaml"
+    if not path.exists():
+        return "(Recurring tasks not yet configured. Use write_recurring to create the config.)"
+    return _read(path)
+
+
+@tool()
+def write_recurring(content: str) -> str:
+    """Create or overwrite the recurring tasks config (attractor/recurring.yaml)."""
+    if err := _check_initialized():
+        return err
+    return _write(ATTRACTOR_DIR / "recurring.yaml", content)
+
+
+@tool()
 def read_agents() -> str:
     """Read the agent delegation config (attractor/agents.yaml).
     Returns the full content, or a not-found message if the file doesn't exist yet."""
