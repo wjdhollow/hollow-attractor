@@ -171,10 +171,11 @@ Worldlines reference OKR slugs in their `okr:` frontmatter field.
 ## attractor/preferences.yaml
 
 ```yaml
-hollow_version: 0.2.0
+hollow_version: 0.6.0
 reminder_surfacing: on_invocation   # on_invocation | disabled
 anneal_threshold_days: 7
 stale_question_days: 14
+stale_worldline_days: 30            # 0 = disabled
 git_auto_commit: true
 default_worldline: null
 theme: default                      # default | kurisu | custom

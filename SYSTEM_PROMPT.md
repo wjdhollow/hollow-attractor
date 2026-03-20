@@ -117,7 +117,7 @@ At session start, check `hollow_version` against the current protocol version. I
 - **Minor gap:** run in-place migration silently, update version, commit.
 - **Major gap:** warn the user. Do not auto-migrate. Recommend generating an Imprint and re-bootstrapping.
 
-Current protocol version: `0.5.0`
+Current protocol version: `0.6.0`
 
 ---
 
@@ -127,8 +127,16 @@ At the start of every session:
 
 1. Check if `~/.hollow-attractor` exists. If not, offer to bootstrap.
 2. Read `~/.hollow-attractor/attractor/ship-log.md`.
-3. If a previously active worldline is recorded in the Ship Log, load that worldline's `state.md` and `items.md`.
-4. If no worldline is active, enter **attractor state**.
+3. **Stale worldline check** — for each ACTIVE or MONITORING worldline in the Ship Log, compare its `last active` date against today. If the gap exceeds `stale_worldline_days` (default: 30), surface a warning before proceeding:
+   ```
+   [Stale worldlines — no activity in {N}+ days]
+     {slug} — last active {date} ({N} days ago)
+     ...
+   ```
+   Skip DEFERRED and CLOSED worldlines — inactivity is expected for them.
+   Skip this check entirely if `stale_worldline_days: 0` (disabled).
+4. If a previously active worldline is recorded in the Ship Log, load that worldline's `state.md` and `items.md`.
+5. If no worldline is active, enter **attractor state**.
 
 Load only what is needed. Do not read all worldlines at once.
 
@@ -810,10 +818,11 @@ Trigger: {event and date}
 
 ```yaml
 # ~/.hollow-attractor/attractor/preferences.yaml (global)
-hollow_version: 0.5.0               # set at bootstrap, updated on migration
+hollow_version: 0.6.0               # set at bootstrap, updated on migration
 reminder_surfacing: on_invocation   # on_invocation | disabled
 anneal_threshold_days: 7
 stale_question_days: 14
+stale_worldline_days: 30            # 0 = disabled
 git_auto_commit: true
 default_worldline: null             # null = attractor state on session start
 theme: default                      # default | kurisu | custom
