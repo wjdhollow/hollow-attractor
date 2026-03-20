@@ -404,6 +404,26 @@ def write_archive(slug: str, period: str, content: str) -> str:
 
 
 @tool()
+def read_pull_sources() -> str:
+    """Read the pull sources config (attractor/pull-sources.yaml).
+    Returns the full content, or a not-found message if the file doesn't exist yet."""
+    if err := _check_initialized():
+        return err
+    path = ATTRACTOR_DIR / "pull-sources.yaml"
+    if not path.exists():
+        return "(Pull sources not yet configured. Use write_pull_sources to create the config.)"
+    return _read(path)
+
+
+@tool()
+def write_pull_sources(content: str) -> str:
+    """Create or overwrite the pull sources config (attractor/pull-sources.yaml)."""
+    if err := _check_initialized():
+        return err
+    return _write(ATTRACTOR_DIR / "pull-sources.yaml", content)
+
+
+@tool()
 def read_tag_index() -> str:
     """Read the tag index (attractor/tag-index.md).
     Returns the full content, or a not-found message if the file doesn't exist yet."""

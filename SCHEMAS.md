@@ -130,6 +130,52 @@ last_updated: {YYYY-MM-DD}
 
 ---
 
+## attractor/pull-sources.yaml
+
+```yaml
+# Pull sources — MCP-based ingestion plugins
+# Each source defines an MCP tool to call, its parameters, the target worldline,
+# and a mapping_hint that guides Claude's item classification.
+# Trigger: hollow, pull from {source-name}
+
+sources:
+  {source-name}:
+    description: {what this source pulls}
+    worldline: {target-worldline-slug}
+    tool: {mcp-tool-name}        # e.g. mcp__jira__get_issues
+    params:
+      {key}: {value}             # passed directly to the tool
+    mapping_hint: |
+      {free-text instructions for how to classify the tool's output as Hollow Attractor items}
+```
+
+Example:
+```yaml
+sources:
+  jira-sprint:
+    description: Current sprint tickets assigned to me
+    worldline: work
+    tool: mcp__jira__get_issues
+    params:
+      assignee: me
+      sprint: current
+    mapping_hint: |
+      Map Jira status to item state: In Progress → actionable, Blocked → waiting, To Do → inbox.
+      Include the issue key (e.g. ENG-123) in item notes.
+
+  gmail-actions:
+    description: Unread emails needing a response
+    worldline: work
+    tool: mcp__claude_ai_Gmail__gmail_search_messages
+    params:
+      query: "is:unread label:action-needed"
+    mapping_hint: |
+      Each thread becomes one item. Use sender + subject as the title.
+      Set waiting_on to the sender if awaiting their reply.
+```
+
+---
+
 ## attractor/tag-index.md
 
 ```markdown
