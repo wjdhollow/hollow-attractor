@@ -117,7 +117,7 @@ At session start, check `hollow_version` against the current protocol version. I
 - **Minor gap:** run in-place migration silently, update version, commit.
 - **Major gap:** warn the user. Do not auto-migrate. Recommend generating an Imprint and re-bootstrapping.
 
-Current protocol version: `0.4.0`
+Current protocol version: `0.5.0`
 
 ---
 
@@ -163,6 +163,11 @@ If `attractor/okr.md` exists, append:
 OKRs: {N} active — run `hollow, show okr coverage` for alignment view
 ```
 
+**Status-aware display rules:**
+- Show ACTIVE and MONITORING worldlines with their status label.
+- Show DEFERRED worldlines as a count only: `{N} deferred — say 'hollow, show deferred' to view`.
+- Do not show CLOSED worldlines in the active attractor view.
+
 Then wait. Do not assume which worldline the user wants.
 
 ---
@@ -184,6 +189,89 @@ When user says `hollow, switch to {name}`, `hollow, {name} worldline`, or simila
 5. Set active worldline for the remainder of the session.
 
 Worldline shifts do not trigger a git commit.
+
+---
+
+## Worldline Lifecycle
+
+Every worldline carries a `status` field in its `state.md` frontmatter.
+
+| Status | Meaning | Surfaced in attractor? | Anneal | Stale warnings |
+|---|---|---|---|---|
+| `ACTIVE` | Normal operation | Yes | Normal | Yes |
+| `MONITORING` | Work done, watching for follow-up | Yes (labelled) | Threshold 2× | Suppressed |
+| `DEFERRED` | Intentionally paused | Count only | Suppressed | Suppressed |
+| `CLOSED` | Terminal. Closing summary written. | No | Never | Never |
+
+**Valid transitions:**
+```
+ACTIVE     → MONITORING  (main work done)
+ACTIVE     → DEFERRED    (intentional pause)
+ACTIVE     → CLOSED      (wind down — requires closing summary)
+MONITORING → ACTIVE      (re-engaged)
+MONITORING → CLOSED      (terminal)
+DEFERRED   → ACTIVE      (resumed)
+DEFERRED   → CLOSED      (abandoned — still requires closing summary)
+```
+
+**Non-closing transitions** (`hollow, set {worldline} to monitoring/deferred/active`):
+1. Read state.md.
+2. Update `status:` field.
+3. Update `last_updated`.
+4. Write state.md.
+5. Update Ship Log Active Worldlines entry with new status label.
+6. Commit: `hollow: [{worldline}] status → {STATUS}`
+
+---
+
+### Closing Protocol
+
+**Trigger:** `hollow, close worldline {slug}` or `hollow, wind down {slug}` or similar.
+
+Closing is always explicit. Never close a worldline automatically.
+
+**Step 1 — Confirm:**
+```
+[Worldline closing: {slug}]
+Status will be set to CLOSED. A closing summary is required before proceeding.
+This is not deletion — the worldline and all its history remain.
+Proceed?
+```
+
+**Step 2 — Draft closing summary:**
+
+Read `state.md` and `items.md`. Synthesize:
+- **Accomplished** — draw from completed items, key decisions, and the Summary/Current Focus sections.
+- **Unanswered** — list all open questions verbatim.
+- **Follow-up Issues Filed** — list all open items (inbox, actionable, waiting). Ask the user where each should go if not obvious.
+
+Present the draft to the user:
+```
+[Closing Summary draft: {slug}]
+
+Accomplished:
+  - {bullet}
+
+Unanswered:
+  - {Q-N}: {question text}
+
+Follow-up Issues Filed:
+  - [{target-worldline}] {item or description}
+
+Confirm or edit?
+```
+
+**Step 3 — Write:**
+1. Append `## Closing Summary` section to `state.md` (below `## Divergences`).
+2. Set `status: CLOSED` in frontmatter.
+3. Update `last_updated`.
+4. Write state.md.
+5. Move worldline entry from `## Active Worldlines` to `## Closed Worldlines` in Ship Log.
+6. Commit: `hollow: close worldline {slug} — {one-line reason or "wind down"}`
+
+**The closing summary is permanent.** It is never modified after writing and is never touched by Anneal.
+
+**Closing is not deletion.** The worldline directory, all items, archive, and git history remain intact. Use deletion only when the user explicitly wants the data gone.
 
 ---
 
@@ -377,7 +465,9 @@ hollow: anneal {worldline} — {intent or "routine compaction"}
 hollow: anneal {worldline} — {intent summary or "routine compaction"}
 ```
 
-**Anneal never touches:** open items, open questions, active divergences, key decisions, references, ingestion log.
+**Anneal never touches:** open items, open questions, active divergences, key decisions, references, ingestion log, closing summary.
+
+**Anneal is suppressed for DEFERRED and CLOSED worldlines.** Do not suggest or run Anneal on them.
 
 ---
 
@@ -618,7 +708,12 @@ Anneal manages the cascade. Do not write to archive files outside of Anneal.
 last_updated: {date}
 
 ## Active Worldlines
-- {slug} (last active: {date})
+- {slug} (ACTIVE, last active: {date})
+- {slug} (MONITORING, last active: {date})
+- {slug} (DEFERRED, last active: {date})
+
+## Closed Worldlines
+- {slug} (closed: {date})
 
 ## Active Divergences
 - div-{slug}: {worldline-a} <-> {worldline-b} (since {date})
@@ -643,6 +738,7 @@ last_updated: {date}
 ```markdown
 # Worldline: {slug}
 created: {date}
+status: ACTIVE
 okr: []
 tags: []
 last_anneal: {date or null}
@@ -714,7 +810,7 @@ Trigger: {event and date}
 
 ```yaml
 # ~/.hollow-attractor/attractor/preferences.yaml (global)
-hollow_version: 0.4.0               # set at bootstrap, updated on migration
+hollow_version: 0.5.0               # set at bootstrap, updated on migration
 reminder_surfacing: on_invocation   # on_invocation | disabled
 anneal_threshold_days: 7
 stale_question_days: 14

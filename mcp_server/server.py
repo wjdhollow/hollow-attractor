@@ -118,6 +118,7 @@ def _state_template(slug: str, today: str) -> str:
     return f"""\
 # Worldline: {slug}
 created: {today}
+status: ACTIVE
 okr: []
 tags: []
 last_anneal: null

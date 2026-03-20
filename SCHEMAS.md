@@ -12,7 +12,12 @@ This document is referenced by the system prompt. It is not part of the protocol
 last_updated: {YYYY-MM-DD}
 
 ## Active Worldlines
-- {slug} (last active: {YYYY-MM-DD})
+- {slug} (ACTIVE, last active: {YYYY-MM-DD})
+- {slug} (MONITORING, last active: {YYYY-MM-DD})
+- {slug} (DEFERRED, last active: {YYYY-MM-DD})
+
+## Closed Worldlines
+(none)
 
 ## Active Divergences
 - div-{slug}: {worldline-a} <-> {worldline-b} (since {YYYY-MM-DD})
@@ -37,6 +42,7 @@ last_updated: {YYYY-MM-DD}
 ```markdown
 # Worldline: {slug}
 created: {YYYY-MM-DD}
+status: ACTIVE
 okr: []
 tags: []
 last_anneal: null
@@ -62,6 +68,22 @@ last_updated: {YYYY-MM-DD}
 
 ## Divergences
 (none)
+```
+
+When a worldline is CLOSED, append this section:
+
+```markdown
+## Closing Summary
+closed: {YYYY-MM-DD}
+
+### Accomplished
+- {bullet summarizing what was done}
+
+### Unanswered
+- {Q-N}: {question text} (since {date})
+
+### Follow-up Issues Filed
+- [{target-worldline}] {item-id or description}
 ```
 
 ---
