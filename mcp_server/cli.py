@@ -26,6 +26,11 @@ def main() -> None:
         _init()
     elif args and args[0] == "serve":
         _serve(args[1:])
+    elif args and args[0] == "rename-worldline":
+        if len(args) != 3:
+            print("Usage: hollow rename-worldline <old-slug> <new-slug>", file=sys.stderr)
+            sys.exit(1)
+        _rename_worldline(args[1], args[2])
     elif args and args[0] in ("--version", "-V"):
         from importlib.metadata import version
         print(version("hollow-attractor"))
@@ -38,13 +43,14 @@ def main() -> None:
         print("Hollow Attractor")
         print()
         print("Usage:")
-        print("  hollow init               Bootstrap ~/.hollow-attractor")
-        print("  hollow serve              Run MCP server over HTTP on localhost:7412")
-        print("  hollow serve --port N     Run HTTP server on a custom port")
-        print("  hollow serve --daemon     Run HTTP server in background")
-        print("  hollow serve --stop       Stop the background server")
-        print("  hollow serve --status     Check if background server is running")
-        print("  hollow --version          Show version")
+        print("  hollow init                          Bootstrap ~/.hollow-attractor")
+        print("  hollow rename-worldline <old> <new>  Rename a worldline slug atomically")
+        print("  hollow serve                         Run MCP server over HTTP on localhost:7412")
+        print("  hollow serve --port N                Run HTTP server on a custom port")
+        print("  hollow serve --daemon                Run HTTP server in background")
+        print("  hollow serve --stop                  Stop the background server")
+        print("  hollow serve --status                Check if background server is running")
+        print("  hollow --version                     Show version")
         print("  hollow                    Run MCP server via stdio (used by Claude Desktop)")
         print()
         print("See https://github.com/wjdhollow/hollow-attractor for setup instructions.")
@@ -182,6 +188,91 @@ def _serve_status() -> None:
     except OSError:
         print("hollow serve: not running (stale PID file)")
         _PID_FILE.unlink()
+
+
+def _rename_worldline(old: str, new: str) -> None:
+    import os
+    import re
+    import shutil
+
+    hollow_dir = Path(os.environ.get("HOLLOW_DIR", str(Path.home() / ".hollow-attractor")))
+
+    def die(msg: str) -> None:
+        print(f"\033[0;31m[hollow]\033[0m {msg}", file=sys.stderr)
+        sys.exit(1)
+
+    def info(msg: str) -> None:
+        print(f"\033[0;34m[hollow]\033[0m {msg}")
+
+    def success(msg: str) -> None:
+        print(f"\033[0;32m[hollow]\033[0m {msg}")
+
+    def git(*args: str) -> None:
+        subprocess.run(["git", "-C", str(hollow_dir), *args], check=True, capture_output=True)
+
+    # Validate slugs
+    def valid_slug(s: str) -> bool:
+        return bool(s) and all(c.isalnum() or c == "-" for c in s) and s == s.lower()
+
+    if not valid_slug(old):
+        die(f"Invalid slug '{old}'. Use lowercase letters, digits, and hyphens only.")
+    if not valid_slug(new):
+        die(f"Invalid slug '{new}'. Use lowercase letters, digits, and hyphens only.")
+    if old == new:
+        die("Old and new slugs are the same.")
+
+    old_dir = hollow_dir / "worldlines" / old
+    new_dir = hollow_dir / "worldlines" / new
+
+    if not old_dir.is_dir():
+        die(f"Worldline '{old}' not found.")
+    if new_dir.exists():
+        die(f"Worldline '{new}' already exists.")
+
+    info(f"Renaming worldline '{old}' → '{new}'")
+
+    # Copy directory
+    shutil.copytree(old_dir, new_dir)
+
+    # Update slug references in state.md and items.md headers
+    for filename, pattern, replacement in [
+        ("state.md",  f"# Worldline: {old}", f"# Worldline: {new}"),
+        ("items.md",  f"# Items: {old}",     f"# Items: {new}"),
+    ]:
+        path = new_dir / filename
+        if path.exists():
+            text = path.read_text(encoding="utf-8")
+            path.write_text(text.replace(pattern, replacement, 1), encoding="utf-8")
+
+    # Update archive headers
+    archive_dir = new_dir / "archive"
+    if archive_dir.is_dir():
+        for md in archive_dir.glob("*.md"):
+            text = md.read_text(encoding="utf-8")
+            updated = re.sub(rf"\b{re.escape(old)}\b", new, text)
+            if updated != text:
+                md.write_text(updated, encoding="utf-8")
+
+    # Update Ship Log — replace old slug entry with new slug
+    ship_log = hollow_dir / "attractor" / "ship-log.md"
+    if ship_log.exists():
+        text = ship_log.read_text(encoding="utf-8")
+        updated = re.sub(rf"\b{re.escape(old)}\b", new, text)
+        if updated != text:
+            ship_log.write_text(updated, encoding="utf-8")
+            info("Ship Log updated.")
+
+    # Delete old directory
+    shutil.rmtree(old_dir)
+
+    # Commit
+    git("add", ".")
+    git("commit", "-m", f"hollow: rename worldline {old} → {new}")
+
+    success(f"Worldline '{old}' renamed to '{new}'.")
+    print()
+    print(f"  Note: if '{old}' is referenced in divergence files or other worldlines'")
+    print(f"  state.md, update those references manually or via a Hollow Attractor session.")
 
 
 def _init() -> None:
