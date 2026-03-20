@@ -37,6 +37,7 @@ last_updated: {YYYY-MM-DD}
 ```markdown
 # Worldline: {slug}
 created: {YYYY-MM-DD}
+okr: []
 last_anneal: null
 last_updated: {YYYY-MM-DD}
 
@@ -103,6 +104,27 @@ last_updated: {YYYY-MM-DD}
 # anneal_threshold_days: 14
 # stale_question_days: 21
 ```
+
+---
+
+## attractor/okr.md
+
+```markdown
+# OKR Index
+last_updated: {YYYY-MM-DD}
+
+## Active OKRs
+
+| slug | description |
+|------|-------------|
+| {okr-slug} | {one-line description of the objective} |
+
+## Archived OKRs
+(none)
+```
+
+OKR slugs should be short, hyphen-separated, and scoped to a cycle if useful (e.g. `q1-growth`, `reliability-2026`).
+Worldlines reference OKR slugs in their `okr:` frontmatter field.
 
 ---
 

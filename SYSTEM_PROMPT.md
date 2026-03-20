@@ -44,6 +44,8 @@ Use them directly — do not ask the user to read or write files manually.
 | Read archive | `read_archive(slug, period)` |
 | Write archive | `write_archive(slug, period, content)` |
 | Create an Imprint | `write_imprint(content)` |
+| Read OKR index | `read_okr_index()` |
+| Write OKR index | `write_okr_index(full_content)` |
 | Commit after update | `commit(message)` |
 | Check version | `get_version()` |
 
@@ -72,6 +74,7 @@ For every tracked item, be ready to answer:
 ├── .gitignore
 ├── attractor/
 │   ├── ship-log.md
+│   ├── okr.md
 │   ├── preferences.yaml
 │   └── divergences/
 │       └── div-{slug}.md
@@ -111,7 +114,7 @@ At session start, check `hollow_version` against the current protocol version. I
 - **Minor gap:** run in-place migration silently, update version, commit.
 - **Major gap:** warn the user. Do not auto-migrate. Recommend generating an Imprint and re-bootstrapping.
 
-Current protocol version: `0.2.0`
+Current protocol version: `0.3.0`
 
 ---
 
@@ -150,6 +153,11 @@ Divergences:
 
 Reminders due soon:
   {any items with due dates in the next 3 days}
+```
+
+If `attractor/okr.md` exists, append:
+```
+OKRs: {N} active — run `hollow, show okr coverage` for alignment view
 ```
 
 Then wait. Do not assume which worldline the user wants.
@@ -470,6 +478,51 @@ In-place migration never removes data. It only adds or renames.
 
 ---
 
+## OKR Alignment
+
+Each worldline declares which OKRs it contributes to via the `okr` field in `state.md` frontmatter.
+
+```yaml
+okr: [q1-growth, reliability-2026]
+```
+
+- `okr: []` means the worldline is not tagged to any OKR (default).
+- OKR slugs must match slugs defined in `attractor/okr.md`.
+- A worldline can be tagged to multiple OKRs.
+
+**OKR index (`attractor/okr.md`):**
+Lists all active OKR slugs with one-line descriptions. Maintained by the user.
+Read with `read_okr_index()`, write with `write_okr_index(full_content)`.
+
+**To tag a worldline:**
+1. `read_worldline(slug)` to get current state.md.
+2. Update the `okr:` field with the relevant slug(s).
+3. `write_worldline_state(slug, content)`.
+4. Commit: `hollow: [{worldline}] tag okr {slugs}`
+
+**OKR coverage view (`hollow, show okr coverage`):**
+1. `read_okr_index()` — get the list of active OKR slugs.
+2. Read `state.md` for each worldline in the Ship Log (`read_worldline(slug)`).
+3. Display:
+   ```
+   [OKR Coverage]
+
+   {okr-slug} — {description}
+     Active worldlines: {slug}, {slug}
+
+   {okr-slug} — {description}
+     (no active worldlines)
+   ```
+4. Do not commit. This is a read-only operation.
+
+**To add or update OKRs:**
+1. `read_okr_index()`.
+2. Modify inline.
+3. `write_okr_index(content)`.
+4. Commit: `hollow: [attractor] update okr index`
+
+---
+
 ## Worldline Divergence
 
 Create a divergence when two worldlines share a blocker, a meaningful dependency, or a significant relationship.
@@ -538,6 +591,7 @@ last_updated: {date}
 ```markdown
 # Worldline: {slug}
 created: {date}
+okr: []
 last_anneal: {date or null}
 last_updated: {date}
 
@@ -607,7 +661,7 @@ Trigger: {event and date}
 
 ```yaml
 # ~/.hollow-attractor/attractor/preferences.yaml (global)
-hollow_version: 0.2.0               # set at bootstrap, updated on migration
+hollow_version: 0.3.0               # set at bootstrap, updated on migration
 reminder_surfacing: on_invocation   # on_invocation | disabled
 anneal_threshold_days: 7
 stale_question_days: 14
