@@ -44,6 +44,8 @@ Use them directly — do not ask the user to read or write files manually.
 | Read archive | `read_archive(slug, period)` |
 | Write archive | `write_archive(slug, period, content)` |
 | Create an Imprint | `write_imprint(content)` |
+| Read pull sources | `read_pull_sources()` |
+| Write pull sources | `write_pull_sources(full_content)` |
 | Read tag index | `read_tag_index()` |
 | Write tag index | `write_tag_index(full_content)` |
 | Read OKR index | `read_okr_index()` |
@@ -78,6 +80,7 @@ For every tracked item, be ready to answer:
 │   ├── ship-log.md
 │   ├── okr.md
 │   ├── tag-index.md
+│   ├── pull-sources.yaml
 │   ├── preferences.yaml
 │   └── divergences/
 │       └── div-{slug}.md
@@ -117,7 +120,7 @@ At session start, check `hollow_version` against the current protocol version. I
 - **Minor gap:** run in-place migration silently, update version, commit.
 - **Major gap:** warn the user. Do not auto-migrate. Recommend generating an Imprint and re-bootstrapping.
 
-Current protocol version: `0.6.0`
+Current protocol version: `0.7.0`
 
 ---
 
@@ -579,6 +582,50 @@ In-place migration never removes data. It only adds or renames.
 
 ---
 
+## Pull Sources
+
+Pull sources allow users to ingest data from external tools (Jira, Gmail, Slack, GitHub, etc.) into Hollow Attractor worldlines using any MCP tools they already have connected.
+
+Configuration lives in `attractor/pull-sources.yaml`. Read with `read_pull_sources()`, write with `write_pull_sources(content)`.
+
+**Config structure:**
+```yaml
+sources:
+  {source-name}:
+    description: {what this source pulls}
+    worldline: {target-worldline-slug}
+    tool: {mcp-tool-name}
+    params:
+      {key}: {value}
+    mapping_hint: |
+      {free-text instructions for classifying the tool's output as Hollow Attractor items}
+```
+
+**To pull from a source (`hollow, pull from {source-name}`):**
+1. `read_pull_sources()` — find the named source.
+2. If not found, list available sources and stop.
+3. Call the configured `tool` with the configured `params`.
+4. Apply the **Ingestion Protocol** using `mapping_hint` as the classification guide:
+   - Summarize what was found and present candidates to the user before writing.
+   - On confirmation, write items to the target worldline's `items.md`.
+   - Log in the worldline's `## Ingestion Log` with `source_type: pull-source`.
+5. Commit: `hollow: [{worldline}] pull {source-name} — {N} items ingested`
+
+**To list configured sources (`hollow, show pull sources`):**
+1. `read_pull_sources()`.
+2. Display source names, descriptions, and target worldlines.
+3. Do not commit — read-only.
+
+**To add or edit a source (`hollow, add pull source` / `hollow, edit pull source {name}`):**
+1. `read_pull_sources()`.
+2. Modify inline, prompting user for the tool name, params, worldline, and mapping hint.
+3. `write_pull_sources(content)`.
+4. Commit: `hollow: [attractor] add pull source {name}`
+
+**Pull sources have no hardcoded integrations.** They work with any MCP tool the user has connected. The `mapping_hint` is free-text — no code changes are needed to support a new source.
+
+---
+
 ## Tag Search
 
 Each worldline carries a free-form `tags` list in `state.md` frontmatter for discovery and cross-worldline search.
@@ -818,7 +865,7 @@ Trigger: {event and date}
 
 ```yaml
 # ~/.hollow-attractor/attractor/preferences.yaml (global)
-hollow_version: 0.6.0               # set at bootstrap, updated on migration
+hollow_version: 0.7.0               # set at bootstrap, updated on migration
 reminder_surfacing: on_invocation   # on_invocation | disabled
 anneal_threshold_days: 7
 stale_question_days: 14
