@@ -119,6 +119,7 @@ def _state_template(slug: str, today: str) -> str:
 # Worldline: {slug}
 created: {today}
 okr: []
+tags: []
 last_anneal: null
 last_updated: {today}
 
@@ -399,6 +400,27 @@ def write_archive(slug: str, period: str, content: str) -> str:
     archive_dir = _worldline_dir(slug) / "archive"
     filename = "recent.md" if period == "recent" else f"{period}.md"
     return _write(archive_dir / filename, content)
+
+
+@tool()
+def read_tag_index() -> str:
+    """Read the tag index (attractor/tag-index.md).
+    Returns the full content, or a not-found message if the file doesn't exist yet."""
+    if err := _check_initialized():
+        return err
+    path = ATTRACTOR_DIR / "tag-index.md"
+    if not path.exists():
+        return "(Tag index not yet created. Use write_tag_index to initialise it.)"
+    return _read(path)
+
+
+@tool()
+def write_tag_index(content: str) -> str:
+    """Create or overwrite the tag index (attractor/tag-index.md).
+    Always update last_updated in the content before calling."""
+    if err := _check_initialized():
+        return err
+    return _write(ATTRACTOR_DIR / "tag-index.md", content)
 
 
 @tool()
