@@ -277,9 +277,13 @@ def _rename_worldline(old: str, new: str) -> None:
 
 def _init() -> None:
     import os
+    from importlib.metadata import version as _pkg_version
 
     hollow_dir = Path(os.environ.get("HOLLOW_DIR", str(Path.home() / ".hollow-attractor")))
-    hollow_version = "0.2.0"
+    try:
+        hollow_version = _pkg_version("hollow-attractor")
+    except Exception:
+        hollow_version = "1.0.0"
     today = date.today().isoformat()
 
     def info(msg: str) -> None:
